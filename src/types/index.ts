@@ -73,6 +73,24 @@ export interface CreateAppointmentDTO {
   durationMinutes: AppointmentDuration;
 }
 
+export interface DoctorAppointmentReportItem {
+  doctorId: number;
+  doctorName: string;
+  specialization: string | null;
+  isActive: boolean;
+  bookedCount: number;
+  cancelledCount: number;
+}
+
+export interface AppointmentReportResponse {
+  data: DoctorAppointmentReportItem[];
+  range: {
+    startDate: string;
+    endDate: string;
+    timeZone: 'Asia/Kolkata';
+  };
+}
+
 // Extend Express Request type to include the resolved user
 declare global {
   namespace Express {
