@@ -8,5 +8,11 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     host: true,
+    proxy: {
+      '/doctors': 'http://localhost:3000',
+      '/appointments': 'http://localhost:3000',
+      '/reports': 'http://localhost:3000',
+      '/health': 'http://localhost:3000',
+    },
   },
 });

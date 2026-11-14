@@ -3,12 +3,14 @@ import { useUser } from '../context/UserContext';
 import { fetchDoctors } from '../services/doctor.service';
 import { DoctorList } from '../components/DoctorList';
 import { BookingForm } from '../components/BookingForm';
+import { AppointmentsList } from '../components/AppointmentsList';
 import type { Doctor } from '../types';
 
 export const HomePage = () => {
   const { currentUser } = useUser();
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
   const isReception = currentUser.role === 'RECEPTION';
 
@@ -35,6 +37,11 @@ export const HomePage = () => {
 
   const handleSelectDoctor = (doctor: Doctor) => {
     setSelectedDoctorId(doctor.id);
+  };
+
+  const handleBookingSuccess = () => {
+    // Increment refreshTrigger to signal AppointmentsList to re-fetch
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -83,9 +90,15 @@ export const HomePage = () => {
             doctors={doctors}
             selectedDoctorId={selectedDoctorId}
             onSelectDoctorId={setSelectedDoctorId}
+            onBookingSuccess={handleBookingSuccess}
           />
         </section>
       </div>
+
+      {/* Full-width Appointments List with pagination & cancellation */}
+      <section>
+        <AppointmentsList refreshTrigger={refreshTrigger} />
+      </section>
     </main>
   );
 };

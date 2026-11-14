@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useUser } from '../context/UserContext';
 import { bookAppointment } from '../services/appointment.service';
 import { ApiError } from '../services/api';
+import { formatIstDateTime } from '../utils/date';
 import type { Appointment, AppointmentDuration, Doctor } from '../types';
 
 interface BookingFormProps {
@@ -20,20 +21,6 @@ function getTodayIstString(): string {
   const istOffsetMs = 5.5 * 60 * 60 * 1000;
   const istDate = new Date(now.getTime() + istOffsetMs);
   return istDate.toISOString().split('T')[0];
-}
-
-// Helper to format ISO timestamp nicely in IST
-function formatIstDateTime(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    return d.toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }) + ' IST';
-  } catch {
-    return isoString;
-  }
 }
 
 export const BookingForm = ({
@@ -181,7 +168,7 @@ export const BookingForm = ({
             <div><strong>Appointment ID:</strong> #{successAppointment.id}</div>
             <div><strong>Doctor:</strong> {successAppointment.doctor.name} ({successAppointment.doctor.specialization || 'General Practice'})</div>
             <div><strong>Patient:</strong> {successAppointment.patient.name} ({successAppointment.patient.email})</div>
-            <div><strong>Scheduled Time:</strong> {formatIstDateTime(successAppointment.startTime)}</div>
+            <div><strong>Scheduled Time:</strong> {formatIstDateTime(successAppointment.startTime).full}</div>
             <div><strong>Duration:</strong> {successAppointment.durationMinutes} minutes</div>
             <div><strong>Status:</strong> <span style={{ color: '#276749', fontWeight: 700 }}>{successAppointment.status}</span></div>
           </div>
