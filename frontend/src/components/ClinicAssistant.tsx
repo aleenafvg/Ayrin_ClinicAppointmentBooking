@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useUser } from '../context/UserContext';
 import { sendChatMessage } from '../services/chatbot.service';
 import { ApiError } from '../services/api';
 
@@ -25,6 +26,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export const ClinicAssistant = () => {
+  const { currentUser } = useUser();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState<string>('');
@@ -44,6 +46,16 @@ export const ClinicAssistant = () => {
       inputRef.current?.focus();
     }
   }, [isOpen, messages]);
+
+  useEffect(() => {
+    if (currentUser.role !== 'PATIENT') {
+      setIsOpen(false);
+    }
+  }, [currentUser.role]);
+
+  if (currentUser.role !== 'PATIENT') {
+    return null;
+  }
 
   const handleSendMessage = async (textToSend: string) => {
     const trimmed = textToSend.trim();
