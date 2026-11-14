@@ -1,85 +1,89 @@
-import { useHealthCheck } from '../hooks/useHealthCheck';
+import { useState, useEffect, useCallback } from 'react';
+import { useUser } from '../context/UserContext';
+import { fetchDoctors } from '../services/doctor.service';
+import { DoctorList } from '../components/DoctorList';
+import { BookingForm } from '../components/BookingForm';
+import type { Doctor } from '../types';
 
 export const HomePage = () => {
-  const { status, timestamp, error, apiUrl, recheck } = useHealthCheck();
+  const { currentUser } = useUser();
+  const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+
+  const isReception = currentUser.role === 'RECEPTION';
+
+  // Load doctors for form dropdown synchronization
+  const loadDoctors = useCallback(async () => {
+    try {
+      const data = await fetchDoctors(currentUser.id, isReception);
+      setDoctors(data);
+      // Auto-select first active doctor if none selected
+      if (!selectedDoctorId) {
+        const firstActive = data.find((d) => d.isActive);
+        if (firstActive) {
+          setSelectedDoctorId(firstActive.id);
+        }
+      }
+    } catch {
+      // Handled inside DoctorList
+    }
+  }, [currentUser.id, isReception, selectedDoctorId]);
+
+  useEffect(() => {
+    loadDoctors();
+  }, [loadDoctors]);
+
+  const handleSelectDoctor = (doctor: Doctor) => {
+    setSelectedDoctorId(doctor.id);
+  };
 
   return (
-    <main style={{ maxWidth: '800px', margin: '2rem auto', padding: '0 1rem' }}>
+    <main style={{ maxWidth: '1200px', margin: '1.5rem auto', padding: '0 1rem' }}>
+      {/* Current session info banner */}
       <div style={{
-        backgroundColor: '#ffffff',
+        backgroundColor: '#edf2f7',
         border: '1px solid #e2e8f0',
-        borderRadius: '0.5rem',
-        padding: '2rem',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        borderRadius: '0.375rem',
+        padding: '0.65rem 1rem',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.5rem',
+        fontSize: '0.875rem',
+        color: '#4a5568',
       }}>
-        <h2 style={{ marginTop: 0, fontSize: '1.5rem', color: '#2d3748' }}>
-          Clinic Frontend Foundation
-        </h2>
-        <p style={{ color: '#4a5568', lineHeight: 1.6 }}>
-          The React + TypeScript application has been successfully initialized using Vite.
-          The backend API client and architecture foundation are configured and ready.
-        </p>
+        <div>
+          Acting as <strong>{currentUser.name}</strong> ({currentUser.email}) &bull; Role: <strong>{currentUser.role}</strong>
+        </div>
+        <div style={{ color: '#718096', fontSize: '0.8rem' }}>
+          Header: <code>X-User-Id: {currentUser.id}</code>
+        </div>
+      </div>
 
-        <section style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          backgroundColor: '#f7fafc',
-          borderRadius: '0.375rem',
-          border: '1px solid #edf2f7',
-        }}>
-          <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: '#2d3748' }}>
-            Environment Configuration
-          </h3>
-          <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: '0.5rem' }}>
-            <dt style={{ fontWeight: 600, color: '#4a5568', fontSize: '0.875rem' }}>API Base URL:</dt>
-            <dd style={{ margin: 0, color: '#2b6cb0', fontFamily: 'monospace', fontSize: '0.875rem' }}>{apiUrl}</dd>
-
-            <dt style={{ fontWeight: 600, color: '#4a5568', fontSize: '0.875rem' }}>Backend Link:</dt>
-            <dd style={{ margin: 0, fontSize: '0.875rem' }}>
-              {status === 'loading' && (
-                <span style={{ color: '#d69e2e', fontWeight: 500 }}>Connecting to backend...</span>
-              )}
-              {status === 'online' && (
-                <span style={{ color: '#38a169', fontWeight: 600 }}>
-                  Online (Verified at {timestamp})
-                </span>
-              )}
-              {status === 'offline' && (
-                <span style={{ color: '#e53e3e', fontWeight: 500 }}>
-                  Offline or Not Started ({error})
-                </span>
-              )}
-            </dd>
-          </dl>
-          <div style={{ marginTop: '1rem' }}>
-            <button
-              onClick={recheck}
-              style={{
-                backgroundColor: '#3182ce',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '0.25rem',
-                padding: '0.4rem 0.8rem',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-              }}
-            >
-              Test Backend Connection
-            </button>
-          </div>
+      {/* Main 2-column responsive layout */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+        gap: '1.5rem',
+        alignItems: 'start',
+      }}>
+        {/* Left Column: Doctor Listing */}
+        <section>
+          <DoctorList
+            selectedDoctorId={selectedDoctorId}
+            onSelectDoctor={handleSelectDoctor}
+          />
         </section>
 
-        <section style={{ marginTop: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', color: '#2d3748', marginBottom: '0.5rem' }}>
-            Project Structure
-          </h3>
-          <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#4a5568', fontSize: '0.875rem', lineHeight: 1.8 }}>
-            <li><code>src/components</code> — Shared reusable UI components</li>
-            <li><code>src/pages</code> — Top-level views and screen containers</li>
-            <li><code>src/services</code> — Reusable API client foundation with <code>X-User-Id</code> support</li>
-            <li><code>src/types</code> — Shared TypeScript domain interfaces and responses</li>
-            <li><code>src/hooks</code> — Reusable React hooks</li>
-          </ul>
+        {/* Right Column: Booking Form */}
+        <section>
+          <BookingForm
+            doctors={doctors}
+            selectedDoctorId={selectedDoctorId}
+            onSelectDoctorId={setSelectedDoctorId}
+          />
         </section>
       </div>
     </main>

@@ -50,6 +50,16 @@ export interface PaginatedResult<T> {
   pagination: PaginationMeta;
 }
 
+export interface ApiResponse<T> {
+  data: T;
+}
+
+export interface BookAppointmentDTO {
+  doctorId: number;
+  startTime: string; // ISO 8601 with explicit timezone, e.g. YYYY-MM-DDTHH:mm:00+05:30
+  durationMinutes: AppointmentDuration;
+}
+
 export interface ApiErrorResponse {
   error: {
     code: string;
