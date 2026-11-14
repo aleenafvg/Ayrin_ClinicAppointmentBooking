@@ -1,18 +1,27 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useUser } from '../context/UserContext';
 import { fetchDoctors, deactivateDoctor, activateDoctor } from '../services/doctor.service';
+import {
+  getDoctorProfilePhoto,
+  getDoctorRating,
+  FALLBACK_DOCTOR_PHOTO,
+} from '../utils/doctor-data';
 import type { Doctor } from '../types';
 
 interface DoctorListProps {
   selectedDoctorId: number | null;
   onSelectDoctor: (doctor: Doctor) => void;
   onDoctorUpdated?: () => void;
+  selectedSpecialty?: string;
+  onSelectSpecialty?: (specialty: string) => void;
 }
 
 export const DoctorList = ({
   selectedDoctorId,
   onSelectDoctor,
   onDoctorUpdated,
+  selectedSpecialty: externalSpecialty,
+  onSelectSpecialty,
 }: DoctorListProps) => {
   const { currentUser } = useUser();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -23,6 +32,13 @@ export const DoctorList = ({
   const [actionType, setActionType] = useState<'deactivate' | 'activate' | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
   const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
+
+  // Client-side search and specialty filters (instant updates with zero unnecessary API requests)
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [internalSpecialty, setInternalSpecialty] = useState<string>('ALL');
+
+  const selectedSpecialty = externalSpecialty ?? internalSpecialty;
+  const changeSpecialty = onSelectSpecialty ?? setInternalSpecialty;
 
   const isReception = currentUser.role === 'RECEPTION';
 
@@ -42,6 +58,17 @@ export const DoctorList = ({
   useEffect(() => {
     loadDoctors();
   }, [loadDoctors]);
+
+  // Combined search and specialty filtering
+  const filteredDoctors = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return doctors.filter((doc) => {
+      const matchesSearch = !q || doc.name.toLowerCase().includes(q);
+      const matchesSpecialty =
+        selectedSpecialty === 'ALL' || doc.specialization === selectedSpecialty;
+      return matchesSearch && matchesSpecialty;
+    });
+  }, [doctors, searchQuery, selectedSpecialty]);
 
   const handleDeactivate = async (doctor: Doctor) => {
     if (actionDoctorId !== null) return;
@@ -123,59 +150,85 @@ export const DoctorList = ({
         )}
       </div>
 
-      {actionSuccessMsg && (
-        <div className="alert alert-success" role="status" style={{ marginBottom: '1rem' }}>
-          <div className="alert-flex">
-            <div>{actionSuccessMsg}</div>
-            <button
-              type="button"
-              className="alert-close-btn"
-              onClick={() => setActionSuccessMsg(null)}
-            >
-              Dismiss
-            </button>
+      {/* Compact Doctor Name Search Field */}
+      {!loading && !error && doctors.length > 0 && (
+        <div className="doctor-search-wrapper">
+          <div className="doctor-search-box">
+            <input
+              id="doctor-search-input"
+              type="text"
+              className="form-control"
+              placeholder="Search doctors by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search doctors by name"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                title="Clear search query"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
       )}
-
-      {actionErrorMsg && (
-        <div className="alert alert-error" role="alert" style={{ marginBottom: '1rem' }}>
-          <div className="alert-flex">
-            <div>{actionErrorMsg}</div>
-            <button
-              type="button"
-              className="alert-close-btn"
-              onClick={() => setActionErrorMsg(null)}
-            >
-              Dismiss
-            </button>
+        {actionSuccessMsg && (
+          <div className="alert alert-success" role="status" style={{ marginBottom: '1rem' }}>
+            <div className="alert-flex">
+              <div>{actionSuccessMsg}</div>
+              <button
+                type="button"
+                className="alert-close-btn"
+                onClick={() => setActionSuccessMsg(null)}
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {loading && (
-        <div className="state-container">
-          <div className="loading-spinner" aria-hidden="true" />
-          <span style={{ fontSize: '0.875rem', color: 'var(--color-text-subtle)' }}>
-            Loading clinic doctors...
-          </span>
-        </div>
-      )}
-
-      {error && !loading && (
-        <div className="alert alert-error">
-          <div className="alert-flex">
-            <div>Error: {error}</div>
-            <button
-              type="button"
-              onClick={loadDoctors}
-              className="btn btn-sm btn-danger"
-            >
-              Retry
-            </button>
+        {actionErrorMsg && (
+          <div className="alert alert-error" role="alert" style={{ marginBottom: '1rem' }}>
+            <div className="alert-flex">
+              <div>{actionErrorMsg}</div>
+              <button
+                type="button"
+                className="alert-close-btn"
+                onClick={() => setActionErrorMsg(null)}
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {loading && (
+          <div className="state-container">
+            <div className="loading-spinner" aria-hidden="true" />
+            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-subtle)' }}>
+              Loading clinic doctors...
+            </span>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="alert alert-error">
+            <div className="alert-flex">
+              <div>Error: {error}</div>
+              <button
+                type="button"
+                onClick={loadDoctors}
+                className="btn btn-sm btn-danger"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
 
       {!loading && !error && doctors.length === 0 && (
         <div className="empty-state">
@@ -186,11 +239,36 @@ export const DoctorList = ({
         </div>
       )}
 
-      {!loading && !error && doctors.length > 0 && (
+      {/* Empty State: Filters returned 0 results */}
+      {!loading && !error && doctors.length > 0 && filteredDoctors.length === 0 && (
+        <div className="empty-state">
+          <p className="empty-state-title">No matching doctors found</p>
+          <p className="empty-state-desc">
+            No doctors matched your filter criteria
+            {searchQuery ? ` for "${searchQuery}"` : ''}
+            {selectedSpecialty !== 'ALL' ? ` in ${selectedSpecialty}` : ''}.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+              changeSpecialty('ALL');
+            }}
+            className="btn btn-sm btn-secondary"
+            style={{ marginTop: '0.75rem' }}
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && filteredDoctors.length > 0 && (
         <div className="doctor-grid">
-          {doctors.map((doctor) => {
+          {filteredDoctors.map((doctor) => {
             const isSelected = selectedDoctorId === doctor.id;
             const cardClass = `doctor-card ${doctor.isActive ? 'active' : 'inactive'} ${isSelected ? 'selected' : ''}`;
+            const photoUrl = getDoctorProfilePhoto(doctor.id);
+            const rating = getDoctorRating(doctor.id);
 
             return (
               <div
@@ -208,22 +286,44 @@ export const DoctorList = ({
                   }
                 }}
               >
-                <div>
-                  <div className="doctor-card-header">
-                    <h3 className="doctor-name">{doctor.name}</h3>
-                    <span
-                      className={`badge ${doctor.isActive ? 'badge-active' : 'badge-inactive'}`}
-                    >
-                      {doctor.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                <div className="doctor-card-body">
+                  <div className="doctor-avatar-wrapper">
+                    <img
+                      src={photoUrl}
+                      alt={`Fictional portrait of ${doctor.name}`}
+                      className="doctor-avatar-img"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_DOCTOR_PHOTO;
+                      }}
+                    />
                   </div>
 
-                  <p className="doctor-specialty">
-                    {doctor.specialization || 'General Practice'}
-                  </p>
+                  <div className="doctor-details">
+                    <div className="doctor-card-header">
+                      <h3 className="doctor-name">{doctor.name}</h3>
+                      <span
+                        className={`badge ${doctor.isActive ? 'badge-active' : 'badge-inactive'}`}
+                      >
+                        {doctor.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+
+                    <p className="doctor-specialty">
+                      {doctor.specialization || 'General Practice'}
+                    </p>
+
+                    {/* Fictional Demo Rating */}
+                    <div className="doctor-rating" title="Demonstration rating only">
+                      <span className="rating-star" aria-hidden="true">★</span>
+                      <span className="rating-value">{rating.averageRating.toFixed(1)}</span>
+                      <span className="rating-count">({rating.reviewCount})</span>
+                      <span className="rating-demo-tag">DEMO</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
+                <div className="doctor-card-footer">
                   {isReception ? (
                     doctor.isActive ? (
                       <button

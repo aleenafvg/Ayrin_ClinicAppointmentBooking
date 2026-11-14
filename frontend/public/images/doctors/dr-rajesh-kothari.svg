@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" aria-label="Fictional portrait of Dr. Rajesh Kothari">
+  <defs>
+    <clipPath id="circleClip1">
+      <circle cx="60" cy="60" r="56"/>
+    </clipPath>
+    <linearGradient id="bgGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f242d"/>
+      <stop offset="100%" stop-color="#15181e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <circle cx="60" cy="60" r="58" fill="#2a2e39" stroke="#3d4454" stroke-width="2"/>
+  <circle cx="60" cy="60" r="56" fill="url(#bgGrad1)"/>
+
+  <g clip-path="url(#circleClip1)">
+    <!-- Shoulders & Torso -->
+    <path d="M20 120 C22 96 38 88 60 88 C82 88 98 96 100 120 Z" fill="#2d3748"/>
+    <!-- Medical Scrub V-Neck -->
+    <polygon points="46 95, 60 115, 74 95, 68 88, 52 88" fill="#4a5d4e"/>
+    <!-- White Doctor Coat -->
+    <path d="M22 120 C24 100 36 90 48 93 L54 120 Z" fill="#e2e8f0"/>
+    <path d="M98 120 C96 100 84 90 72 93 L66 120 Z" fill="#e2e8f0"/>
+    
+    <!-- Neck -->
+    <rect x="52" y="70" width="16" height="20" rx="3" fill="#d4a373"/>
+    
+    <!-- Stethoscope -->
+    <path d="M42 98 C42 110 50 116 60 116 C70 116 78 110 78 98" fill="none" stroke="#6e8c76" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="60" cy="116" r="4.5" fill="#94a3b8" stroke="#475569" stroke-width="1.5"/>
+
+    <!-- Head & Face -->
+    <ellipse cx="60" cy="54" rx="20" ry="24" fill="#e0b084"/>
+    
+    <!-- Hair -->
+    <path d="M38 50 C38 32 46 25 60 25 C74 25 82 32 82 50 C80 34 72 29 60 29 C48 29 40 34 38 50 Z" fill="#334155"/>
+    <path d="M38 46 C37 38 42 32 50 28 C42 32 38 40 38 46 Z" fill="#1e293b"/>
+
+    <!-- Ears -->
+    <circle cx="39" cy="55" r="4.5" fill="#d4a373"/>
+    <circle cx="81" cy="55" r="4.5" fill="#d4a373"/>
+
+    <!-- Glasses Frame -->
+    <rect x="44" y="48" width="13" height="10" rx="2.5" fill="none" stroke="#1e293b" stroke-width="2"/>
+    <rect x="63" y="48" width="13" height="10" rx="2.5" fill="none" stroke="#1e293b" stroke-width="2"/>
+    <line x1="57" y1="52" x2="63" y2="52" stroke="#1e293b" stroke-width="2"/>
+    <line x1="40" y1="51" x2="44" y2="51" stroke="#1e293b" stroke-width="1.5"/>
+    <line x1="76" y1="51" x2="80" y2="51" stroke="#1e293b" stroke-width="1.5"/>
+
+    <!-- Eyes (behind glasses) -->
+    <circle cx="50.5" cy="53" r="2" fill="#1e293b"/>
+    <circle cx="69.5" cy="53" r="2" fill="#1e293b"/>
+
+    <!-- Eyebrows -->
+    <path d="M45 45 C48 44 54 44 56 46" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M64 46 C66 44 72 44 75 45" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/>
+
+    <!-- Nose -->
+    <path d="M59 55 L58 63 L62 63" fill="none" stroke="#c48b58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Gentle Smile -->
+    <path d="M53 69 C56 72 64 72 67 69" fill="none" stroke="#a3663a" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>
+

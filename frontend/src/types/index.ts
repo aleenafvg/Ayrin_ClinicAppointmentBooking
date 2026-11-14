@@ -12,12 +12,20 @@ export interface User {
   createdAt: string;
 }
 
+export interface DoctorRating {
+  averageRating: number;
+  reviewCount: number;
+  isDemo: boolean;
+}
+
 export interface Doctor {
   id: number;
   name: string;
   specialization: string | null;
   isActive: boolean;
   createdAt: string;
+  rating?: DoctorRating;
+  photoUrl?: string;
 }
 
 export interface Appointment {

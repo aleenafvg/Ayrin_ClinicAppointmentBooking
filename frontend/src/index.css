@@ -140,7 +140,7 @@ code {
 
 .main-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 1.75rem;
   align-items: start;
 }
@@ -521,6 +521,144 @@ code {
   gap: 1rem;
 }
 
+/* Section Header for Doctors (Sitting outside and above the cards container) */
+.doctor-section-header {
+  margin-bottom: 0.75rem;
+}
+
+.doctor-section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+  gap: 1rem;
+}
+
+.section-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 600 !important;
+  color: var(--color-text-main);
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* Compact Doctor Search Bar */
+.doctor-search-wrapper {
+  margin-bottom: 0.85rem;
+}
+
+.doctor-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.doctor-search-box .form-control {
+  padding-right: 3.5rem;
+  font-size: 0.875rem;
+  height: 2.35rem;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 0.5rem;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.search-clear-btn:hover {
+  color: var(--color-text-main);
+  border-color: var(--color-border-strong);
+}
+
+/* ==========================================================================
+   ROW 1: Full-Width Specialty Navigation (Spanning entire content width)
+   Large, oval/pill-shaped tabs evenly distributed across the full available width
+   ========================================================================== */
+
+.specialty-nav-section {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.specialty-pills-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.25rem 0;
+}
+
+.specialty-pills-container::-webkit-scrollbar {
+  display: none;
+}
+
+.specialty-pills-track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.specialty-pill-btn {
+  flex: 1 1 0;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: 9999px; /* large, oval/pill-shaped tabs */
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.specialty-pill-btn:hover:not(.active) {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-main);
+}
+
+.specialty-pill-btn.active {
+  background-color: var(--color-sage);
+  border-color: var(--color-sage);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(110, 140, 118, 0.28);
+}
+
+.specialty-pill-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg-app), 0 0 0 4px var(--color-sage);
+}
+
 .doctor-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -552,7 +690,38 @@ code {
   cursor: not-allowed;
   background-color: #151619;
   border-color: #222327;
-  opacity: 0.55;
+  opacity: 0.65;
+}
+
+.doctor-card-body {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+}
+
+.doctor-avatar-wrapper {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doctor-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.doctor-details {
+  flex: 1;
+  min-width: 0;
 }
 
 .doctor-card-header {
@@ -572,6 +741,56 @@ code {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
   color: var(--color-text-subtle);
+}
+
+.doctor-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.rating-star {
+  color: #f59e0b;
+  font-size: 0.85rem;
+}
+
+.rating-value {
+  color: var(--color-text-main);
+}
+
+.rating-count {
+  color: var(--color-text-subtle);
+  font-size: 0.75rem;
+}
+
+.rating-demo-tag {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.35rem;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  line-height: 1;
+}
+
+.doctor-card-footer {
+  margin-top: 0.5rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Filter controls */

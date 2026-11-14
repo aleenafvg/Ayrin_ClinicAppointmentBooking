@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { fetchDoctors } from '../services/doctor.service';
+import { SpecialtyTabs } from '../components/SpecialtyTabs';
 import { DoctorList } from '../components/DoctorList';
 import { BookingForm } from '../components/BookingForm';
 import { AppointmentsList } from '../components/AppointmentsList';
@@ -11,6 +12,7 @@ export const HomePage = () => {
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('ALL');
 
   const isReception = currentUser.role === 'RECEPTION';
 
@@ -60,14 +62,23 @@ export const HomePage = () => {
         </span>
       </section>
 
-      {/* Main 2-column responsive layout */}
+      {/* ROW 1: Full-width specialty navigation tabs spanning the entire content width, above both columns */}
+      <SpecialtyTabs
+        selectedSpecialty={selectedSpecialty}
+        onSelectSpecialty={setSelectedSpecialty}
+        doctors={doctors}
+      />
+
+      {/* ROW 2: Main 2-column responsive layout */}
       <div className="main-grid">
-        {/* Left Column: Doctor Listing */}
+        {/* Left Column: Available Doctors, search bar and doctor cards */}
         <section aria-label="Available Doctors">
           <DoctorList
             selectedDoctorId={selectedDoctorId}
             onSelectDoctor={handleSelectDoctor}
             onDoctorUpdated={loadDoctors}
+            selectedSpecialty={selectedSpecialty}
+            onSelectSpecialty={setSelectedSpecialty}
           />
         </section>
 

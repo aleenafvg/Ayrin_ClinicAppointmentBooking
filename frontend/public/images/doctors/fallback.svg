@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" aria-label="Default doctor avatar">
+  <defs>
+    <clipPath id="circleClipFallback">
+      <circle cx="60" cy="60" r="56"/>
+    </clipPath>
+    <linearGradient id="fallbackBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f232b"/>
+      <stop offset="100%" stop-color="#14171d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <circle cx="60" cy="60" r="58" fill="#2a2e39" stroke="#3d4454" stroke-width="2"/>
+  <circle cx="60" cy="60" r="56" fill="url(#fallbackBgGrad)"/>
+
+  <g clip-path="url(#circleClipFallback)">
+    <!-- Shoulders & Torso -->
+    <path d="M22 120 C24 96 38 88 60 88 C82 88 96 96 98 120 Z" fill="#222834"/>
+    <!-- Medical Scrub V -->
+    <polygon points="48 94, 60 114, 72 94, 66 88, 54 88" fill="#3b4d42"/>
+    <!-- White Coat -->
+    <path d="M24 120 C26 100 38 90 49 93 L55 120 Z" fill="#e2e8f0"/>
+    <path d="M96 120 C94 100 82 90 71 93 L65 120 Z" fill="#e2e8f0"/>
+
+    <!-- Neck -->
+    <rect x="53" y="70" width="14" height="20" rx="3" fill="#64748b"/>
+
+    <!-- Minimalist Stethoscope -->
+    <path d="M43 96 C43 112 51 117 60 117 C69 117 77 112 77 96" fill="none" stroke="#6e8c76" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="60" cy="117" r="4.5" fill="#94a3b8" stroke="#475569" stroke-width="1.5"/>
+
+    <!-- Head & Silhouette -->
+    <ellipse cx="60" cy="54" rx="19" ry="23" fill="#475569"/>
+
+    <!-- Medical Cross Icon on Silhouette -->
+    <rect x="57" y="44" width="6" height="18" rx="2" fill="#94a3b8"/>
+    <rect x="51" y="50" width="18" height="6" rx="2" fill="#94a3b8"/>
+  </g>
+</svg>
+

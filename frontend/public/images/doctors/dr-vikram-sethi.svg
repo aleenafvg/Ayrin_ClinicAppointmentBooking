@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" aria-label="Fictional portrait of Dr. Vikram Sethi">
+  <defs>
+    <clipPath id="circleClip3">
+      <circle cx="60" cy="60" r="56"/>
+    </clipPath>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22252c"/>
+      <stop offset="100%" stop-color="#14171d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <circle cx="60" cy="60" r="58" fill="#2a2e39" stroke="#3d4454" stroke-width="2"/>
+  <circle cx="60" cy="60" r="56" fill="url(#bgGrad3)"/>
+
+  <g clip-path="url(#circleClip3)">
+    <!-- Shoulders & Torso -->
+    <path d="M20 120 C22 96 38 88 60 88 C82 88 98 96 100 120 Z" fill="#1e2229"/>
+    <!-- Navy Blue Medical Tie / Shirt -->
+    <polygon points="54 90, 66 90, 64 120, 56 120" fill="#1e3a5f"/>
+    <!-- Crisp White Doctor Coat -->
+    <path d="M22 120 C24 99 36 89 49 92 L55 120 Z" fill="#e2e8f0"/>
+    <path d="M98 120 C96 99 84 89 71 92 L65 120 Z" fill="#e2e8f0"/>
+
+    <!-- Neck -->
+    <rect x="52" y="70" width="16" height="20" rx="3" fill="#cf9b6d"/>
+
+    <!-- Cardiologist Stethoscope (Professional Slate & Steel) -->
+    <path d="M41 96 C41 112 50 118 60 118 C70 118 79 112 79 96" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="60" cy="118" r="5" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="60" cy="118" r="2.5" fill="#6e8c76"/>
+
+    <!-- Head & Face (Defined Jawline) -->
+    <path d="M42 48 C42 36 50 30 60 30 C70 30 78 36 78 48 C78 64 72 74 60 76 C48 74 42 64 42 48 Z" fill="#dbab7c"/>
+
+    <!-- Hair (Short, neatly trimmed corporate-clinical cut) -->
+    <path d="M40 45 C40 30 48 24 60 24 C72 24 80 30 80 45 C78 31 70 28 60 28 C50 28 42 31 40 45 Z" fill="#1e293b"/>
+    <path d="M40 42 C42 34 48 30 60 29 C65 29 74 31 80 40 C75 33 66 31 60 31 C52 31 44 34 40 42 Z" fill="#0f172a"/>
+
+    <!-- Ears -->
+    <circle cx="41" cy="53" r="4" fill="#cf9b6d"/>
+    <circle cx="79" cy="53" r="4" fill="#cf9b6d"/>
+
+    <!-- Eyes (Focused, confident gaze) -->
+    <circle cx="51.5" cy="51" r="2.2" fill="#0f172a"/>
+    <circle cx="68.5" cy="51" r="2.2" fill="#0f172a"/>
+    <circle cx="52.2" cy="50.3" r="0.8" fill="#ffffff"/>
+    <circle cx="69.2" cy="50.3" r="0.8" fill="#ffffff"/>
+
+    <!-- Eyebrows (Strong, defined) -->
+    <path d="M46 45 C49 43 54 44 57 46" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M63 46 C66 44 71 43 74 45" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- Nose -->
+    <path d="M59 52 L58 61 L62 61" fill="none" stroke="#b87a4c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Confident Professional Expression -->
+    <path d="M54 67 C57 69 63 69 66 67" fill="none" stroke="#9a5a30" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>
+
