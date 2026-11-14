@@ -16,7 +16,7 @@ export async function bookAppointment(
 
 export async function listAppointments(
   userId: number,
-  params: { limit: number; offset: number }
+  params: { limit: number; offset: number; startDate?: string; endDate?: string; doctorId?: number }
 ): Promise<PaginatedResult<Appointment>> {
   return apiClient<PaginatedResult<Appointment>>('/appointments', {
     method: 'GET',

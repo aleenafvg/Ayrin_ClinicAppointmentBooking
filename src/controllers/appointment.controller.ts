@@ -179,7 +179,56 @@ export async function handleListAppointments(
       offset = parsedOffset;
     }
 
-    const result = await listAppointments(caller, { limit, offset });
+    // Optional date-range filtering for calendar view (startDate & endDate)
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+
+    if (req.query.startDate !== undefined) {
+      const rawStart = String(req.query.startDate).trim();
+      const parsedStart = new Date(rawStart);
+      if (isNaN(parsedStart.getTime())) {
+        throw new AppError(
+          400,
+          'INVALID_DATE_RANGE',
+          'startDate must be a valid date or timestamp string.'
+        );
+      }
+      startDate = rawStart;
+    }
+
+    if (req.query.endDate !== undefined) {
+      const rawEnd = String(req.query.endDate).trim();
+      const parsedEnd = new Date(rawEnd);
+      if (isNaN(parsedEnd.getTime())) {
+        throw new AppError(
+          400,
+          'INVALID_DATE_RANGE',
+          'endDate must be a valid date or timestamp string.'
+        );
+      }
+      endDate = rawEnd;
+    }
+
+    // Optional doctorId filter
+    let doctorId: number | undefined;
+    if (req.query.doctorId !== undefined) {
+      const rawDoctorId = String(req.query.doctorId).trim();
+      const parsedDoctorId = parseInt(rawDoctorId, 10);
+      if (isNaN(parsedDoctorId) || parsedDoctorId <= 0 || !/^\d+$/.test(rawDoctorId)) {
+        throw new AppError(
+          400,
+          'INVALID_DOCTOR_ID',
+          'doctorId must be a positive integer.'
+        );
+      }
+      doctorId = parsedDoctorId;
+    }
+
+    const result = await listAppointments(
+      caller,
+      { limit, offset },
+      { startDate, endDate, doctorId }
+    );
 
     res.status(200).json(result);
   } catch (err) {

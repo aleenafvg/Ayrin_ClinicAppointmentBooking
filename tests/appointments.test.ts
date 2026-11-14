@@ -601,6 +601,160 @@ describe('Appointment Endpoints', () => {
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('INVALID_PAGINATION');
     });
+
+    it('filters appointments by startDate and endDate range when provided', async () => {
+      let executedFilter = '';
+      let queryParamsUsed: any[] = [];
+
+      dbMocks.poolQuery.mockImplementation(async (sql: any, params?: any) => {
+        const text = typeof sql === 'string' ? sql : sql?.text || '';
+        if (text.includes('FROM users WHERE id = $1')) {
+          return { rows: [TEST_RECEPTION_USER] } as any;
+        }
+        if (text.includes('COUNT(*) AS total')) {
+          return { rows: [{ total: '1' }] } as any;
+        }
+        if (text.includes('FROM appointments a')) {
+          executedFilter = text;
+          queryParamsUsed = params || [];
+          return {
+            rows: [
+              {
+                id: 3,
+                doctor_id: 2,
+                doctor_name: 'Dr. Meera Nambiar',
+                doctor_specialization: 'Cardiology',
+                patient_id: 1,
+                patient_name: 'Aarav Sharma',
+                patient_email: 'aarav.sharma@clinic.test',
+                start_time: new Date('2026-11-10T04:30:00.000Z'),
+                duration_minutes: 30,
+                status: 'BOOKED',
+                created_at: new Date('2026-10-01T00:00:00.000Z'),
+                updated_at: new Date('2026-10-01T00:00:00.000Z'),
+              },
+            ],
+          } as any;
+        }
+        return { rows: [] } as any;
+      });
+
+      const res = await request(app)
+        .get('/appointments?startDate=2026-11-09T00:00:00%2B05:30&endDate=2026-11-16T00:00:00%2B05:30')
+        .set('X-User-Id', String(TEST_RECEPTION_USER.id));
+
+      expect(res.status).toBe(200);
+      expect(executedFilter).toContain('a.start_time >= $1');
+      expect(executedFilter).toContain('a.start_time < $2');
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(3);
+    });
+
+    it('rejects invalid startDate or endDate query parameters with 400 INVALID_DATE_RANGE', async () => {
+      const res = await request(app)
+        .get('/appointments?startDate=not-a-valid-date')
+        .set('X-User-Id', String(TEST_PATIENT_1.id));
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_DATE_RANGE');
+    });
+
+    it('filters appointments by doctorId for RECEPTION staff', async () => {
+      let executedFilter = '';
+
+      dbMocks.poolQuery.mockImplementation(async (sql: any) => {
+        const text = typeof sql === 'string' ? sql : sql?.text || '';
+        if (text.includes('FROM users WHERE id = $1')) {
+          return { rows: [TEST_RECEPTION_USER] } as any;
+        }
+        if (text.includes('COUNT(*) AS total')) {
+          return { rows: [{ total: '1' }] } as any;
+        }
+        if (text.includes('FROM appointments a')) {
+          executedFilter = text;
+          return {
+            rows: [
+              {
+                id: 1,
+                doctor_id: 1,
+                doctor_name: 'Dr. Rajesh Kothari',
+                doctor_specialization: 'General Medicine',
+                patient_id: 1,
+                patient_name: 'Aarav Sharma',
+                patient_email: 'aarav.sharma@clinic.test',
+                start_time: new Date('2026-10-15T03:30:00.000Z'),
+                duration_minutes: 30,
+                status: 'BOOKED',
+                created_at: new Date('2026-10-01T00:00:00.000Z'),
+                updated_at: new Date('2026-10-01T00:00:00.000Z'),
+              },
+            ],
+          } as any;
+        }
+        return { rows: [] } as any;
+      });
+
+      const res = await request(app)
+        .get('/appointments?doctorId=1')
+        .set('X-User-Id', String(TEST_RECEPTION_USER.id));
+
+      expect(res.status).toBe(200);
+      expect(executedFilter).toContain('WHERE a.doctor_id = $1');
+      expect(res.body.data[0].doctor.id).toBe(1);
+    });
+
+    it('preserves patient ownership check when PATIENT filters by doctorId', async () => {
+      let executedFilter = '';
+
+      dbMocks.poolQuery.mockImplementation(async (sql: any) => {
+        const text = typeof sql === 'string' ? sql : sql?.text || '';
+        if (text.includes('FROM users WHERE id = $1')) {
+          return { rows: [TEST_PATIENT_1] } as any;
+        }
+        if (text.includes('COUNT(*) AS total')) {
+          return { rows: [{ total: '1' }] } as any;
+        }
+        if (text.includes('FROM appointments a')) {
+          executedFilter = text;
+          return {
+            rows: [
+              {
+                id: 1,
+                doctor_id: 1,
+                doctor_name: 'Dr. Rajesh Kothari',
+                doctor_specialization: 'General Medicine',
+                patient_id: 1,
+                patient_name: 'Aarav Sharma',
+                patient_email: 'aarav.sharma@clinic.test',
+                start_time: new Date('2026-10-15T03:30:00.000Z'),
+                duration_minutes: 30,
+                status: 'BOOKED',
+                created_at: new Date('2026-10-01T00:00:00.000Z'),
+                updated_at: new Date('2026-10-01T00:00:00.000Z'),
+              },
+            ],
+          } as any;
+        }
+        return { rows: [] } as any;
+      });
+
+      const res = await request(app)
+        .get('/appointments?doctorId=1')
+        .set('X-User-Id', String(TEST_PATIENT_1.id));
+
+      expect(res.status).toBe(200);
+      expect(executedFilter).toContain('WHERE a.patient_id = $1 AND a.doctor_id = $2');
+      expect(res.body.data[0].patient.id).toBe(TEST_PATIENT_1.id);
+    });
+
+    it('rejects invalid doctorId query parameters with 400 INVALID_DOCTOR_ID', async () => {
+      const res = await request(app)
+        .get('/appointments?doctorId=invalid')
+        .set('X-User-Id', String(TEST_PATIENT_1.id));
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_DOCTOR_ID');
+    });
   });
 
   describe('PATCH /appointments/:id/cancel', () => {

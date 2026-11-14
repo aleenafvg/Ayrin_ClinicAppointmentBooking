@@ -2,6 +2,7 @@ import { pool } from '../db';
 import {
   AppointmentResponse,
   CreateAppointmentDTO,
+  ListAppointmentsFilter,
   PaginatedResult,
   PaginationParams,
   User,
@@ -216,7 +217,8 @@ export async function createAppointment(
 
 export async function listAppointments(
   caller: User,
-  pagination: PaginationParams
+  pagination: PaginationParams,
+  filter?: ListAppointmentsFilter
 ): Promise<PaginatedResult<AppointmentResponse>> {
   const { limit, offset } = pagination;
 
@@ -225,9 +227,36 @@ export async function listAppointments(
   // - Reception staff receive appointments for all patients
   const isPatient = caller.role === 'PATIENT';
 
-  const whereClause = isPatient ? 'WHERE a.patient_id = $1' : '';
-  const countParams = isPatient ? [caller.id] : [];
-  const queryParams = isPatient ? [caller.id, limit, offset] : [limit, offset];
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (isPatient) {
+    params.push(caller.id);
+    conditions.push(`a.patient_id = $${params.length}`);
+  }
+
+  if (filter?.doctorId) {
+    params.push(filter.doctorId);
+    conditions.push(`a.doctor_id = $${params.length}`);
+  }
+
+  if (filter?.startDate) {
+    params.push(new Date(filter.startDate));
+    conditions.push(`a.start_time >= $${params.length}`);
+  }
+
+  if (filter?.endDate) {
+    params.push(new Date(filter.endDate));
+    conditions.push(`a.start_time < $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const countParams = [...params];
+
+  params.push(limit);
+  const limitIndex = params.length;
+  params.push(offset);
+  const offsetIndex = params.length;
 
   const countQuery = `SELECT COUNT(*) AS total FROM appointments a ${whereClause}`;
 
@@ -250,7 +279,7 @@ export async function listAppointments(
     JOIN users u ON u.id = a.patient_id
     ${whereClause}
     ORDER BY a.start_time ASC, a.id ASC
-    LIMIT $${isPatient ? 2 : 1} OFFSET $${isPatient ? 3 : 2}
+    LIMIT $${limitIndex} OFFSET $${offsetIndex}
   `;
 
   const [countResult, listResult] = await Promise.all([
@@ -268,7 +297,7 @@ export async function listAppointments(
       status: 'BOOKED' | 'CANCELLED';
       created_at: Date;
       updated_at: Date;
-    }>(appointmentsQuery, queryParams),
+    }>(appointmentsQuery, params),
   ]);
 
   const total = parseInt(countResult.rows[0].total, 10);

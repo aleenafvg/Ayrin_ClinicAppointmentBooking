@@ -58,6 +58,12 @@ export interface PaginationParams {
   offset: number;
 }
 
+export interface ListAppointmentsFilter {
+  startDate?: string;
+  endDate?: string;
+  doctorId?: number;
+}
+
 export interface PaginatedResult<T> {
   data: T[];
   pagination: {
