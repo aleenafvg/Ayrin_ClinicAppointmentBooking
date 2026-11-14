@@ -19,3 +19,27 @@ export async function fetchDoctors(
   return response.data;
 }
 
+export async function deactivateDoctor(
+  userId: number,
+  doctorId: number
+): Promise<Doctor> {
+  const response = await apiClient<ApiResponse<Doctor>>(`/doctors/${doctorId}/deactivate`, {
+    method: 'PATCH',
+    userId,
+  });
+
+  return response.data;
+}
+
+export async function activateDoctor(
+  userId: number,
+  doctorId: number
+): Promise<Doctor> {
+  const response = await apiClient<ApiResponse<Doctor>>(`/doctors/${doctorId}/activate`, {
+    method: 'PATCH',
+    userId,
+  });
+
+  return response.data;
+}
+

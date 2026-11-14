@@ -22,11 +22,10 @@ export function formatIstDateTime(isoString: string): {
     });
     return {
       date,
-      time: `${time} IST`,
+      time, // Formatted time without repeated IST (e.g. "02:00 PM")
       full: `${date}, ${time} IST`,
     };
   } catch {
     return { date: isoString, time: '', full: isoString };
   }
 }
-

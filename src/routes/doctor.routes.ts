@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { authenticateUser, requireRole } from '../middleware/auth';
-import { getDoctors, handleDeactivateDoctor } from '../controllers/doctor.controller';
+import {
+  getDoctors,
+  handleDeactivateDoctor,
+  handleActivateDoctor,
+} from '../controllers/doctor.controller';
 
 const router = Router();
 
@@ -13,6 +17,14 @@ router.patch(
   authenticateUser,
   requireRole('RECEPTION'),
   handleDeactivateDoctor
+);
+
+// PATCH /doctors/:id/activate — Activate/reactivate doctor (reception only)
+router.patch(
+  '/doctors/:id/activate',
+  authenticateUser,
+  requireRole('RECEPTION'),
+  handleActivateDoctor
 );
 
 export default router;

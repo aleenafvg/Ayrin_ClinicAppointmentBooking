@@ -85,7 +85,7 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
     try {
       await cancelAppointment(currentUser.id, appt.id);
       setCancelSuccessMsg(`Appointment #${appt.id} with ${appt.doctor.name} was successfully cancelled.`);
-      // Refresh the current page to reflect CANCELLED status
+      // Refresh current page to reflect CANCELLED status
       await loadAppointments(page);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -103,30 +103,16 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
   const hasNext = page < totalPages;
 
   return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      border: '1px solid #e2e8f0',
-      borderRadius: '0.5rem',
-      padding: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-      marginTop: '1.5rem',
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1rem',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-      }}>
+    <div className="card section-full">
+      <div className="card-header">
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#2d3748', fontWeight: 600 }}>
+          <h2 className="card-title">
             {isReception ? 'All Clinic Appointments (Reception View)' : 'My Appointments'}
           </h2>
-          <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#718096' }}>
+          <p className="card-subtitle">
             {isReception
-              ? 'Viewing clinic-wide appointments across all patients. Ordered chronologically.'
-              : `Showing appointments booked for ${currentUser.name}. All times displayed in IST.`}
+              ? 'Viewing clinic-wide appointments across all patients, ordered chronologically. All times in IST.'
+              : `Showing appointments booked for ${currentUser.name}. All times displayed in Indian Standard Time (IST).`}
           </p>
         </div>
 
@@ -134,139 +120,105 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
           type="button"
           onClick={() => loadAppointments(page)}
           disabled={loading}
-          style={{
-            backgroundColor: '#edf2f7',
-            color: '#4a5568',
-            border: '1px solid #cbd5e0',
-            borderRadius: '0.25rem',
-            padding: '0.35rem 0.75rem',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
+          className="btn btn-secondary btn-sm"
+          title="Refresh appointments list"
         >
-          {loading ? 'Refreshing...' : '↻ Refresh List'}
+          {loading ? (
+            <>
+              <span className="loading-spinner loading-spinner-sm" aria-hidden="true" />
+              <span>Refreshing...</span>
+            </>
+          ) : (
+            'Refresh List'
+          )}
         </button>
       </div>
 
       {/* Cancellation success feedback */}
       {cancelSuccessMsg && (
-        <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: '#f0fff4',
-          border: '1px solid #9ae6b4',
-          borderRadius: '0.375rem',
-          color: '#22543d',
-          fontSize: '0.875rem',
-          marginBottom: '1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <div>✓ {cancelSuccessMsg}</div>
-          <button
-            onClick={() => setCancelSuccessMsg(null)}
-            style={{ background: 'none', border: 'none', color: '#22543d', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            ×
-          </button>
+        <div className="alert alert-success" role="status">
+          <div className="alert-flex">
+            <div>Success: {cancelSuccessMsg}</div>
+            <button
+              type="button"
+              onClick={() => setCancelSuccessMsg(null)}
+              className="alert-close-btn"
+              aria-label="Dismiss success message"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
       {/* Cancellation error feedback */}
       {cancelErrorMsg && (
-        <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: '#fff5f5',
-          border: '1px solid #feb2b2',
-          borderRadius: '0.375rem',
-          color: '#c53030',
-          fontSize: '0.875rem',
-          marginBottom: '1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <div>⚠ {cancelErrorMsg}</div>
-          <button
-            onClick={() => setCancelErrorMsg(null)}
-            style={{ background: 'none', border: 'none', color: '#c53030', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            ×
-          </button>
+        <div className="alert alert-error" role="alert">
+          <div className="alert-flex">
+            <div>Error: {cancelErrorMsg}</div>
+            <button
+              type="button"
+              onClick={() => setCancelErrorMsg(null)}
+              className="alert-close-btn"
+              aria-label="Dismiss error message"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
       {/* Loading state */}
       {loading && (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>
-          <span>Loading appointments...</span>
+        <div className="state-container">
+          <div className="loading-spinner" aria-hidden="true" />
+          <span style={{ fontSize: '0.875rem', color: 'var(--color-text-subtle)' }}>
+            Loading appointments...
+          </span>
         </div>
       )}
 
       {/* Fetch error state */}
       {fetchError && !loading && (
-        <div style={{
-          padding: '1rem',
-          backgroundColor: '#fff5f5',
-          border: '1px solid #feb2b2',
-          borderRadius: '0.375rem',
-          color: '#c53030',
-          marginBottom: '1rem',
-        }}>
-          <p style={{ margin: 0, fontWeight: 500 }}>{fetchError}</p>
-          <button
-            onClick={() => loadAppointments(page)}
-            style={{
-              marginTop: '0.5rem',
-              backgroundColor: '#e53e3e',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '0.25rem',
-              padding: '0.25rem 0.5rem',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-            }}
-          >
-            Retry
-          </button>
+        <div className="alert alert-error" role="alert">
+          <div className="alert-flex">
+            <div>Fetch Error: {fetchError}</div>
+            <button
+              type="button"
+              onClick={() => loadAppointments(page)}
+              className="btn btn-sm btn-danger"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
 
       {/* Empty state */}
       {!loading && !fetchError && appointments.length === 0 && (
-        <div style={{
-          padding: '2.5rem 1rem',
-          textAlign: 'center',
-          backgroundColor: '#f7fafc',
-          borderRadius: '0.375rem',
-          border: '1px dashed #cbd5e0',
-          color: '#718096',
-        }}>
-          <p style={{ margin: '0 0 0.5rem', fontSize: '1rem', fontWeight: 500, color: '#4a5568' }}>
-            No appointments found.
-          </p>
-          <p style={{ margin: 0, fontSize: '0.85rem' }}>
+        <div className="empty-state">
+          <p className="empty-state-title">No appointments found</p>
+          <p className="empty-state-desc">
             {isReception
               ? 'There are currently no appointments registered in the clinic database.'
-              : 'You have no booked appointments. Use the booking form above to schedule a visit.'}
+              : 'You have no booked appointments. Use the booking form above to schedule your clinic consultation.'}
           </p>
         </div>
       )}
 
-      {/* Appointments Table / Cards */}
+      {/* Appointments Table */}
       {!loading && !fetchError && appointments.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+        <div className="table-responsive">
+          <table className="clinic-table">
             <thead>
-              <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#4a5568' }}>
-                <th style={{ padding: '0.65rem 0.5rem' }}>ID</th>
-                <th style={{ padding: '0.65rem 0.5rem' }}>Doctor</th>
-                {isReception && <th style={{ padding: '0.65rem 0.5rem' }}>Patient</th>}
-                <th style={{ padding: '0.65rem 0.5rem' }}>Date & Time (IST)</th>
-                <th style={{ padding: '0.65rem 0.5rem' }}>Duration</th>
-                <th style={{ padding: '0.65rem 0.5rem' }}>Status</th>
-                <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right' }}>Actions</th>
+              <tr>
+                <th style={{ width: '80px' }}>ID</th>
+                <th>Doctor</th>
+                {isReception && <th>Patient</th>}
+                <th>Date & Time (IST)</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -277,66 +229,57 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
                 const istFormatted = formatIstDateTime(appt.startTime);
 
                 return (
-                  <tr key={appt.id} style={{ borderBottom: '1px solid #edf2f7', transition: 'background-color 0.1s' }}>
-                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: '#718096' }}>
-                      #{appt.id}
+                  <tr key={appt.id}>
+                    <td>
+                      <code>#{appt.id}</code>
                     </td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>
-                      <div style={{ fontWeight: 600, color: '#2d3748' }}>{appt.doctor.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#718096' }}>
+                    <td>
+                      <div className="table-primary-text">{appt.doctor.name}</div>
+                      <div className="table-sub-text">
                         {appt.doctor.specialization || 'General Practice'}
                       </div>
                     </td>
                     {isReception && (
-                      <td style={{ padding: '0.75rem 0.5rem' }}>
-                        <div style={{ fontWeight: 500, color: '#2d3748' }}>{appt.patient.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#718096' }}>{appt.patient.email}</div>
+                      <td>
+                        <div className="table-primary-text">{appt.patient.name}</div>
+                        <div className="table-sub-text">{appt.patient.email}</div>
                       </td>
                     )}
-                    <td style={{ padding: '0.75rem 0.5rem' }}>
-                      <div style={{ fontWeight: 600, color: '#2d3748' }}>{istFormatted.date}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>{istFormatted.time}</div>
+                    <td>
+                      <div className="table-primary-text">{istFormatted.date}</div>
+                      <div className="table-sub-text">{istFormatted.time}</div>
                     </td>
-                    <td style={{ padding: '0.75rem 0.5rem', color: '#4a5568' }}>
-                      {appt.durationMinutes} min
+                    <td>
+                      <span>{appt.durationMinutes} mins</span>
                     </td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                    <td>
                       <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          backgroundColor: isBooked ? '#def7ec' : '#fde8e8',
-                          color: isBooked ? '#03543f' : '#9b1c1c',
-                        }}
+                        className={`badge ${isBooked ? 'badge-booked' : 'badge-cancelled'}`}
                       >
                         {appt.status}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right' }}>
                       {canCancel && (
                         <button
                           type="button"
                           onClick={() => handleCancel(appt)}
                           disabled={cancellingId !== null}
-                          style={{
-                            padding: '0.3rem 0.65rem',
-                            fontSize: '0.775rem',
-                            fontWeight: 600,
-                            borderRadius: '0.25rem',
-                            border: '1px solid #feb2b2',
-                            backgroundColor: isCancellingThis ? '#cbd5e0' : '#fff5f5',
-                            color: isCancellingThis ? '#718096' : '#c53030',
-                            cursor: cancellingId !== null ? 'not-allowed' : 'pointer',
-                          }}
+                          className="btn btn-sm btn-danger"
+                          title={`Cancel appointment #${appt.id}`}
                         >
-                          {isCancellingThis ? 'Cancelling...' : 'Cancel'}
+                          {isCancellingThis ? (
+                            <>
+                              <span className="loading-spinner loading-spinner-sm" aria-hidden="true" />
+                              <span>Cancelling...</span>
+                            </>
+                          ) : (
+                            'Cancel'
+                          )}
                         </button>
                       )}
                       {!isBooked && (
-                        <span style={{ fontSize: '0.75rem', color: '#a0aec0', fontStyle: 'italic' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-subtle)' }}>
                           Cancelled
                         </span>
                       )}
@@ -351,23 +294,15 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
 
       {/* Pagination controls */}
       {!loading && !fetchError && totalCount > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: '1.25rem',
-          paddingTop: '1rem',
-          borderTop: '1px solid #e2e8f0',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-          fontSize: '0.85rem',
-          color: '#4a5568',
-        }}>
+        <div className="pagination-wrapper">
           <div>
-            Showing Page <strong>{page}</strong> of <strong>{totalPages}</strong> ({totalCount} total appointment{totalCount === 1 ? '' : 's'})
+            Showing Page {page} of {totalPages}{' '}
+            <span style={{ color: 'var(--color-text-subtle)' }}>
+              ({totalCount} total appointment{totalCount === 1 ? '' : 's'})
+            </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="pagination-controls">
             <button
               type="button"
               disabled={!hasPrev || loading}
@@ -376,18 +311,10 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
                 setPage(prev);
                 loadAppointments(prev);
               }}
-              style={{
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                borderRadius: '0.25rem',
-                border: '1px solid #cbd5e0',
-                backgroundColor: hasPrev && !loading ? '#ffffff' : '#edf2f7',
-                color: hasPrev && !loading ? '#2d3748' : '#a0aec0',
-                cursor: hasPrev && !loading ? 'pointer' : 'not-allowed',
-              }}
+              className="btn btn-sm btn-secondary"
+              aria-label="Previous page"
             >
-              ← Previous
+              Previous
             </button>
 
             <button
@@ -398,18 +325,10 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
                 setPage(next);
                 loadAppointments(next);
               }}
-              style={{
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                borderRadius: '0.25rem',
-                border: '1px solid #cbd5e0',
-                backgroundColor: hasNext && !loading ? '#ffffff' : '#edf2f7',
-                color: hasNext && !loading ? '#2d3748' : '#a0aec0',
-                cursor: hasNext && !loading ? 'pointer' : 'not-allowed',
-              }}
+              className="btn btn-sm btn-secondary"
+              aria-label="Next page"
             >
-              Next →
+              Next
             </button>
           </div>
         </div>
@@ -417,4 +336,3 @@ export const AppointmentsList = ({ refreshTrigger }: AppointmentsListProps) => {
     </div>
   );
 };
-

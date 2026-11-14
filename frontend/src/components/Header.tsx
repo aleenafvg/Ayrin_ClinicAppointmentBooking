@@ -7,25 +7,20 @@ export interface HeaderProps {
 
 export const Header = ({
   title = 'Ayrin Clinic',
-  subtitle = 'Appointment Booking System',
+  subtitle = 'Appointment Booking & Schedule Management',
 }: HeaderProps) => {
   return (
-    <header style={{
-      borderBottom: '1px solid #e2e8f0',
-      padding: '1rem 2rem',
-      backgroundColor: '#ffffff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: '1rem',
-      flexWrap: 'wrap',
-    }}>
-      <div>
-        <h1 style={{ margin: 0, fontSize: '1.25rem', color: '#1a202c', fontWeight: 600 }}>{title}</h1>
-        <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#718096' }}>{subtitle}</p>
-      </div>
+    <header className="site-header">
+      <div className="site-header-content">
+        <div className="brand-wrapper">
+          <div>
+            <h1 className="brand-title">{title}</h1>
+            <p className="brand-subtitle">{subtitle}</p>
+          </div>
+        </div>
 
-      <UserSelector />
+        <UserSelector />
+      </div>
     </header>
   );
 };

@@ -3,6 +3,7 @@ import {
   createAppointment,
   listAppointments,
   cancelAppointment,
+  isWithinClinicHours,
 } from '../services/appointment.service';
 import { AppError } from '../middleware/error-handler';
 import { AppointmentDuration } from '../types';
@@ -107,6 +108,15 @@ export async function handleBookAppointment(
         400,
         'INVALID_TIMEZONE',
         'startTime must be a valid ISO 8601 timestamp with an explicit timezone offset (e.g. 2026-12-01T11:00:00+05:30 or 2026-12-01T11:00:00Z) and a valid calendar date and time.'
+      );
+    }
+
+    // Validate clinic booking hours (9:00 AM to 9:00 PM IST)
+    if (!isWithinClinicHours(startTime, durationMinutes as AppointmentDuration)) {
+      throw new AppError(
+        422,
+        'OUTSIDE_CLINIC_HOURS',
+        'This appointment cannot be booked because it falls outside clinic hours. Please select an earlier time between 9:00 AM and 9:00 PM.'
       );
     }
 

@@ -8,6 +8,47 @@ import {
 } from '../types';
 import { AppError } from '../middleware/error-handler';
 
+// Evaluates whether an appointment slot in Asia/Kolkata starts at or after 9:00 AM
+// and concludes at or before 9:00 PM on the same IST calendar date.
+export function isWithinClinicHours(startTime: string | Date, durationMinutes: number): boolean {
+  const start = typeof startTime === 'string' ? new Date(startTime) : startTime;
+  if (isNaN(start.getTime())) return false;
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+
+  const getSecondsAndDate = (d: Date) => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    }).formatToParts(d);
+
+    const find = (type: Intl.DateTimeFormatPartTypes) =>
+      parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
+    const dateStr = `${find('year')}-${find('month')}-${find('day')}`;
+    const seconds = find('hour') * 3600 + find('minute') * 60 + find('second');
+    return { dateStr, seconds };
+  };
+
+  const startInfo = getSecondsAndDate(start);
+  const endInfo = getSecondsAndDate(end);
+
+  // Must not cross midnight into another date in IST
+  if (startInfo.dateStr !== endInfo.dateStr) return false;
+
+  // 9:00 AM = 9 * 3600 = 32400 seconds
+  // 9:00 PM = 21 * 3600 = 75600 seconds
+  if (startInfo.seconds < 32400 || endInfo.seconds > 75600) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function createAppointment(
   caller: User,
   dto: CreateAppointmentDTO
@@ -56,7 +97,18 @@ export async function createAppointment(
       );
     }
 
-    // 2. Authoritative check: Start time must not be in the past, evaluated using DB wall clock.
+    // 2. Clinic booking hours validation (Asia/Kolkata timezone: 9:00 AM to 9:00 PM IST)
+    // - Appointments can only be scheduled between 9:00 AM and 9:00 PM IST.
+    // - The appointment must start at or after 9:00 AM and finish at or before 9:00 PM.
+    if (!isWithinClinicHours(startTime, durationMinutes)) {
+      throw new AppError(
+        422,
+        'OUTSIDE_CLINIC_HOURS',
+        'This appointment cannot be booked because it falls outside clinic hours. Please select an earlier time between 9:00 AM and 9:00 PM.'
+      );
+    }
+
+    // 3. Authoritative check: Start time must not be in the past, evaluated using DB wall clock.
     // Using clock_timestamp() rather than CURRENT_TIMESTAMP because CURRENT_TIMESTAMP freezes
     // at transaction start. If the transaction waited for a doctor row lock, clock_timestamp()
     // reflects the real wall clock time after acquiring the lock.

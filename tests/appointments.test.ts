@@ -333,6 +333,159 @@ describe('Appointment Endpoints', () => {
       expect(overlapSql).toContain('start_time < ($2::timestamptz + ($3 * INTERVAL \'1 minute\'))');
       expect(overlapSql).toContain('(start_time + (duration_minutes * INTERVAL \'1 minute\')) > $2::timestamptz');
     });
+
+    describe('Clinic Booking Hours (9:00 AM to 9:00 PM IST)', () => {
+      it('rejects an appointment starting before 9:00 AM IST with 422 OUTSIDE_CLINIC_HOURS', async () => {
+        const res = await request(app)
+          .post('/appointments')
+          .set('X-User-Id', String(TEST_PATIENT_1.id))
+          .send({
+            doctorId: 1,
+            startTime: '2026-12-01T08:45:00+05:30', // 8:45 AM IST (starts before 9:00 AM)
+            durationMinutes: 30,
+          });
+
+        expect(res.status).toBe(422);
+        expect(res.body.error.code).toBe('OUTSIDE_CLINIC_HOURS');
+        expect(res.body.error.message).toContain('outside clinic hours');
+      });
+
+      it('rejects an appointment whose duration extends past 9:00 PM IST with 422 OUTSIDE_CLINIC_HOURS', async () => {
+        const res = await request(app)
+          .post('/appointments')
+          .set('X-User-Id', String(TEST_PATIENT_1.id))
+          .send({
+            doctorId: 1,
+            startTime: '2026-12-01T20:45:00+05:30', // 8:45 PM IST lasting 30 min (finishes at 9:15 PM)
+            durationMinutes: 30,
+          });
+
+        expect(res.status).toBe(422);
+        expect(res.body.error.code).toBe('OUTSIDE_CLINIC_HOURS');
+        expect(res.body.error.message).toContain('outside clinic hours');
+      });
+
+      it('rejects an appointment starting at 9:00 PM IST with 422 OUTSIDE_CLINIC_HOURS', async () => {
+        const res = await request(app)
+          .post('/appointments')
+          .set('X-User-Id', String(TEST_PATIENT_1.id))
+          .send({
+            doctorId: 1,
+            startTime: '2026-12-01T21:00:00+05:30', // 9:00 PM IST (cannot start at or after closing)
+            durationMinutes: 15,
+          });
+
+        expect(res.status).toBe(422);
+        expect(res.body.error.code).toBe('OUTSIDE_CLINIC_HOURS');
+      });
+
+      it('allows an appointment starting at exactly 9:00 AM IST (opening boundary)', async () => {
+        dbMocks.mockClient.query.mockImplementation(async (sql: any) => {
+          const text = typeof sql === 'string' ? sql : sql?.text || '';
+          if (text.includes('BEGIN')) return {} as any;
+          if (text.includes('FROM doctors WHERE id = $1 FOR UPDATE')) {
+            return { rows: [TEST_ACTIVE_DOCTOR] } as any;
+          }
+          if (text.includes('is_past')) {
+            return { rows: [{ is_past: false }] } as any;
+          }
+          if (text.includes('FROM appointments') && text.includes('status = \'BOOKED\'')) {
+            return { rows: [] } as any;
+          }
+          if (text.includes('INSERT INTO appointments')) {
+            return {
+              rows: [
+                {
+                  id: 20,
+                  doctor_id: 1,
+                  patient_id: 1,
+                  start_time: new Date('2026-12-01T03:30:00.000Z'),
+                  duration_minutes: 30,
+                  status: 'BOOKED',
+                  created_at: new Date('2026-11-14T00:00:00.000Z'),
+                  updated_at: new Date('2026-11-14T00:00:00.000Z'),
+                },
+              ],
+            } as any;
+          }
+          if (text.includes('COMMIT')) return {} as any;
+          return { rows: [] } as any;
+        });
+
+        const res = await request(app)
+          .post('/appointments')
+          .set('X-User-Id', String(TEST_PATIENT_1.id))
+          .send({
+            doctorId: 1,
+            startTime: '2026-12-01T09:00:00+05:30', // 9:00 AM IST
+            durationMinutes: 30,
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body.data.id).toBe(20);
+      });
+
+      it('allows an appointment ending at exactly 9:00 PM IST (8:30 PM for 30 minutes)', async () => {
+        dbMocks.mockClient.query.mockImplementation(async (sql: any) => {
+          const text = typeof sql === 'string' ? sql : sql?.text || '';
+          if (text.includes('BEGIN')) return {} as any;
+          if (text.includes('FROM doctors WHERE id = $1 FOR UPDATE')) {
+            return { rows: [TEST_ACTIVE_DOCTOR] } as any;
+          }
+          if (text.includes('is_past')) {
+            return { rows: [{ is_past: false }] } as any;
+          }
+          if (text.includes('FROM appointments') && text.includes('status = \'BOOKED\'')) {
+            return { rows: [] } as any;
+          }
+          if (text.includes('INSERT INTO appointments')) {
+            return {
+              rows: [
+                {
+                  id: 21,
+                  doctor_id: 1,
+                  patient_id: 1,
+                  start_time: new Date('2026-12-01T15:00:00.000Z'),
+                  duration_minutes: 30,
+                  status: 'BOOKED',
+                  created_at: new Date('2026-11-14T00:00:00.000Z'),
+                  updated_at: new Date('2026-11-14T00:00:00.000Z'),
+                },
+              ],
+            } as any;
+          }
+          if (text.includes('COMMIT')) return {} as any;
+          return { rows: [] } as any;
+        });
+
+        const res = await request(app)
+          .post('/appointments')
+          .set('X-User-Id', String(TEST_PATIENT_1.id))
+          .send({
+            doctorId: 1,
+            startTime: '2026-12-01T20:30:00+05:30', // 8:30 PM IST (ends at 9:00 PM)
+            durationMinutes: 30,
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body.data.id).toBe(21);
+      });
+
+      it('correctly interprets UTC timestamps into Asia/Kolkata for clinic hours check', async () => {
+        // 2026-12-01T03:00:00Z is 8:30 AM IST (outside clinic hours)
+        const res = await request(app)
+          .post('/appointments')
+          .set('X-User-Id', String(TEST_PATIENT_1.id))
+          .send({
+            doctorId: 1,
+            startTime: '2026-12-01T03:00:00Z',
+            durationMinutes: 30,
+          });
+
+        expect(res.status).toBe(422);
+        expect(res.body.error.code).toBe('OUTSIDE_CLINIC_HOURS');
+      });
+    });
   });
 
   describe('GET /appointments', () => {

@@ -167,5 +167,89 @@ describe('Doctor Endpoints', () => {
       expect(res.body.error.code).toBe('INVALID_DOCTOR_ID');
     });
   });
+
+  describe('PATCH /doctors/:id/activate', () => {
+    it('allows RECEPTION staff to reactivate an inactive doctor', async () => {
+      let executedSql = '';
+      let executedParams: any[] = [];
+
+      dbMocks.poolQuery.mockImplementation(async (sql: any, params?: any) => {
+        const text = typeof sql === 'string' ? sql : sql?.text || '';
+        if (text.includes('FROM users WHERE id = $1')) {
+          return { rows: [TEST_RECEPTION_USER] } as any;
+        }
+        if (text.includes('UPDATE doctors')) {
+          executedSql = text;
+          executedParams = params || [];
+          return {
+            rows: [
+              {
+                id: 2,
+                name: 'Dr. Priya Sharma',
+                specialization: 'Pediatrics',
+                is_active: true,
+                created_at: new Date('2026-10-01T00:00:00.000Z'),
+              },
+            ],
+          } as any;
+        }
+        return { rows: [] } as any;
+      });
+
+      const res = await request(app)
+        .patch('/doctors/2/activate')
+        .set('X-User-Id', String(TEST_RECEPTION_USER.id));
+
+      expect(res.status).toBe(200);
+      expect(executedSql).toContain('SET is_active = true');
+      expect(executedParams).toEqual([2]);
+      expect(res.body.data.isActive).toBe(true);
+    });
+
+    it('denies a PATIENT from activating a doctor with 403 FORBIDDEN', async () => {
+      const res = await request(app)
+        .patch('/doctors/2/activate')
+        .set('X-User-Id', String(TEST_PATIENT_1.id));
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('returns 401 UNAUTHORIZED when no caller header is provided', async () => {
+      const res = await request(app).patch('/doctors/2/activate');
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('returns 404 DOCTOR_NOT_FOUND when attempting to activate a nonexistent doctor', async () => {
+      dbMocks.poolQuery.mockImplementation(async (sql: any) => {
+        const text = typeof sql === 'string' ? sql : sql?.text || '';
+        if (text.includes('FROM users WHERE id = $1')) {
+          return { rows: [TEST_RECEPTION_USER] } as any;
+        }
+        if (text.includes('UPDATE doctors')) {
+          return { rows: [] } as any;
+        }
+        return { rows: [] } as any;
+      });
+
+      const res = await request(app)
+        .patch('/doctors/9999/activate')
+        .set('X-User-Id', String(TEST_RECEPTION_USER.id));
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('DOCTOR_NOT_FOUND');
+    });
+
+    it('returns 400 INVALID_DOCTOR_ID when doctor ID is invalid', async () => {
+      const res = await request(app)
+        .patch('/doctors/invalid-id/activate')
+        .set('X-User-Id', String(TEST_RECEPTION_USER.id));
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_DOCTOR_ID');
+    });
+  });
 });
 

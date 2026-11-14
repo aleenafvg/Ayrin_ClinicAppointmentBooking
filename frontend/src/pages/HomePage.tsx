@@ -45,58 +45,60 @@ export const HomePage = () => {
   };
 
   return (
-    <main style={{ maxWidth: '1200px', margin: '1.5rem auto', padding: '0 1rem' }}>
+    <main className="app-container">
       {/* Current session info banner */}
-      <div style={{
-        backgroundColor: '#edf2f7',
-        border: '1px solid #e2e8f0',
-        borderRadius: '0.375rem',
-        padding: '0.65rem 1rem',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-        fontSize: '0.875rem',
-        color: '#4a5568',
-      }}>
-        <div>
-          Acting as <strong>{currentUser.name}</strong> ({currentUser.email}) &bull; Role: <strong>{currentUser.role}</strong>
+      <section className="session-banner" aria-label="Current session context">
+        <div className="session-info">
+          <span>Acting as:</span>
+          <span style={{ color: 'var(--color-text-main)' }}>{currentUser.name}</span>
+          <span style={{ color: 'var(--color-text-subtle)' }}>({currentUser.email})</span>
         </div>
-        <div style={{ color: '#718096', fontSize: '0.8rem' }}>
-          Header: <code>X-User-Id: {currentUser.id}</code>
-        </div>
-      </div>
+        <span
+          className={`badge ${currentUser.role === 'PATIENT' ? 'badge-patient' : 'badge-reception'}`}
+        >
+          {currentUser.role === 'PATIENT' ? 'Patient' : 'Reception'}
+        </span>
+      </section>
 
       {/* Main 2-column responsive layout */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-        gap: '1.5rem',
-        alignItems: 'start',
-      }}>
+      <div className="main-grid">
         {/* Left Column: Doctor Listing */}
-        <section>
+        <section aria-label="Available Doctors">
           <DoctorList
             selectedDoctorId={selectedDoctorId}
             onSelectDoctor={handleSelectDoctor}
+            onDoctorUpdated={loadDoctors}
           />
         </section>
 
-        {/* Right Column: Booking Form */}
-        <section>
-          <BookingForm
-            doctors={doctors}
-            selectedDoctorId={selectedDoctorId}
-            onSelectDoctorId={setSelectedDoctorId}
-            onBookingSuccess={handleBookingSuccess}
-          />
-        </section>
+        {/* Right Column: Booking Form for Patients, or Neutral Information for Reception */}
+        {!isReception ? (
+          <section aria-label="Book an Appointment">
+            <BookingForm
+              doctors={doctors}
+              selectedDoctorId={selectedDoctorId}
+              onSelectDoctorId={setSelectedDoctorId}
+              onBookingSuccess={handleBookingSuccess}
+            />
+          </section>
+        ) : (
+          <section aria-label="Staff Overview">
+            <div className="card">
+              <div className="card-header">
+                <div>
+                  <h2 className="card-title">Staff Overview</h2>
+                </div>
+              </div>
+              <div className="alert alert-neutral" role="status">
+                Appointment booking is available through the patient view. As reception staff, you can manage clinic appointments below.
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Full-width Appointments List with pagination & cancellation */}
-      <section>
+      <section aria-label="Appointments Schedule">
         <AppointmentsList refreshTrigger={refreshTrigger} />
       </section>
     </main>

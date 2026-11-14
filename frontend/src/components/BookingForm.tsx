@@ -12,7 +12,55 @@ interface BookingFormProps {
   onBookingSuccess?: (appointment: Appointment) => void;
 }
 
+interface FormErrorState {
+  title: string;
+  message: string;
+  actionGuidance: string;
+}
+
 const DURATIONS: AppointmentDuration[] = [15, 30, 45, 60];
+
+interface TimeSlot {
+  value: string;
+  label: string;
+}
+
+// Generates time slots strictly from 9:00 AM to 8:45 PM in 15-minute intervals.
+// 9:00 PM (21:00) is excluded because the clinic closes at 9:00 PM and appointments cannot start at closing time.
+const generateClinicTimeSlots = (): TimeSlot[] => {
+  const slots: TimeSlot[] = [];
+  for (let hour = 9; hour <= 20; hour++) {
+    for (let min = 0; min <= 45; min += 15) {
+      const hh = String(hour).padStart(2, '0');
+      const mm = String(min).padStart(2, '0');
+      const value = `${hh}:${mm}`;
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour > 12 ? hour - 12 : hour;
+      const displayHh = String(displayHour).padStart(2, '0');
+      const label = `${displayHh}:${mm} ${period}`;
+      slots.push({ value, label });
+    }
+  }
+  return slots;
+};
+
+const CLINIC_TIME_SLOTS = generateClinicTimeSlots();
+
+// Helper to get today's date formatted as YYYY-MM-DD
+// Returns the earlier of local browser date and IST date so "today" is always included and selectable
+function getTodayDateString(): string {
+  const now = new Date();
+  const localYear = now.getFullYear();
+  const localMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const localDay = String(now.getDate()).padStart(2, '0');
+  const localDateStr = `${localYear}-${localMonth}-${localDay}`;
+
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffsetMs);
+  const istDateStr = istDate.toISOString().split('T')[0];
+
+  return localDateStr < istDateStr ? localDateStr : istDateStr;
+}
 
 // Helper to get today's date formatted as YYYY-MM-DD in IST
 function getTodayIstString(): string {
@@ -36,41 +84,84 @@ export const BookingForm = ({
   const [duration, setDuration] = useState<AppointmentDuration>(30);
 
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [clientError, setClientError] = useState<string | null>(null);
-  const [serverError, setServerError] = useState<{ code: string; message: string } | null>(null);
+  const [formError, setFormError] = useState<FormErrorState | null>(null);
   const [successAppointment, setSuccessAppointment] = useState<Appointment | null>(null);
 
   const isReception = currentUser.role === 'RECEPTION';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setClientError(null);
-    setServerError(null);
+    setFormError(null);
     setSuccessAppointment(null);
 
-    // 1. Client-side validation: Doctor selection
+    // 1. Doctor selection validation
     if (!selectedDoctorId) {
-      setClientError('Please select a doctor for the appointment.');
+      setFormError({
+        title: 'Please select a doctor.',
+        message: 'A doctor must be selected before booking an appointment.',
+        actionGuidance: 'Choose a doctor from the list.',
+      });
       return;
     }
 
-    // 2. Client-side validation: Date and time presence
+    // 2. Date and time presence
     if (!date || !time) {
-      setClientError('Please specify both an appointment date and start time.');
+      setFormError({
+        title: 'Missing date or time.',
+        message: 'Please specify both an appointment date and start time.',
+        actionGuidance: 'Select a date and start time.',
+      });
       return;
     }
 
-    // 3. Client-side validation: Past time check in IST
+    // 3. Detailed date and clinic hours validation
+    const minAllowedDate = getTodayDateString(); // 'YYYY-MM-DD'
+    const isPastDate = date < minAllowedDate;
+
+    const [hourStr, minStr] = time.split(':');
+    const h = parseInt(hourStr, 10);
+    const m = parseInt(minStr, 10);
+
+    const startMinutes = h * 60 + m;
+    const endMinutes = startMinutes + duration;
+    // Clinic hours: 9:00 AM (540 min) to 9:00 PM (1260 min)
+    // For slots starting from 8:00 PM onwards or any slot extending past 9:00 PM closing time:
+    // (e.g. 8:15 PM 60m, 8:30 PM 45m/60m, 8:45 PM 30m/45m/60m, 9:00 PM any duration)
+    const isOutsideClinicHours = isNaN(startMinutes) || startMinutes < 540 || endMinutes > 1260;
+
     const istTimestamp = `${date}T${time}:00+05:30`;
     const appointmentEpoch = new Date(istTimestamp).getTime();
+    const isPastEpoch = isNaN(appointmentEpoch) || appointmentEpoch <= Date.now();
 
-    if (isNaN(appointmentEpoch)) {
-      setClientError('Invalid date or time format.');
+    // Specific Error Scenario 1: If the appointment duration extends beyond 9:00 PM closing time
+    if (isOutsideClinicHours) {
+      setFormError({
+        title: 'The clinic closes at 9:00 PM.',
+        message:
+          'This appointment cannot be booked because it falls outside clinic hours. Please select an earlier time between 9:00 AM and 9:00 PM.',
+        actionGuidance: 'Select another time.',
+      });
       return;
     }
 
-    if (appointmentEpoch <= Date.now()) {
-      setClientError('Appointment start time must be in the future.');
+    // Specific Error Scenario 2: If the selected date is in the past
+    if (isPastDate) {
+      setFormError({
+        title: 'Please select a future date and time.',
+        message: 'Appointments cannot be booked for a past date. Please select another day.',
+        actionGuidance: 'Select another date.',
+      });
+      return;
+    }
+
+    // Specific Error Scenario 3: If date is today, but time has already passed
+    if (isPastEpoch) {
+      setFormError({
+        title: 'Please select a future date and time.',
+        message:
+          'The selected appointment time has already passed today. Please choose a future time between 9:00 AM and 9:00 PM IST.',
+        actionGuidance: 'Select another time.',
+      });
       return;
     }
 
@@ -89,11 +180,53 @@ export const BookingForm = ({
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        setServerError({ code: err.code, message: err.message });
+        if (err.code === 'SLOT_CONFLICT') {
+          // Specific Error Scenario 4: If the selected slot overlaps another booked appointment
+          setFormError({
+            title: 'This time slot is already booked.',
+            message:
+              'The selected doctor is unavailable at this time. Please choose another time or select a different doctor.',
+            actionGuidance: 'Select another time or doctor.',
+          });
+        } else if (err.code === 'OUTSIDE_CLINIC_HOURS') {
+          // Specific Error Scenario 1
+          setFormError({
+            title: 'The clinic closes at 9:00 PM.',
+            message:
+              'This appointment cannot be booked because it falls outside clinic hours. Please select an earlier time between 9:00 AM and 9:00 PM.',
+            actionGuidance: 'Select another time.',
+          });
+        } else if (err.code === 'PAST_APPOINTMENT') {
+          // Specific Error Scenario 2
+          setFormError({
+            title: 'This date has already passed.',
+            message: 'Appointments cannot be booked for a past date. Please select another day.',
+            actionGuidance: 'Select another date.',
+          });
+        } else if (err.code === 'FORBIDDEN') {
+          setFormError({
+            title: 'Permission Denied (HTTP 403)',
+            message: 'Only patients are permitted to book appointments under clinic policy.',
+            actionGuidance: 'Switch to a Patient caller in the demo user selector.',
+          });
+        } else if (err.code === 'DOCTOR_INACTIVE') {
+          setFormError({
+            title: 'Doctor Inactive',
+            message: 'Cannot book an appointment with this doctor because they are currently inactive.',
+            actionGuidance: 'Select an active doctor from the list.',
+          });
+        } else {
+          setFormError({
+            title: `Booking Error (${err.code})`,
+            message: err.message,
+            actionGuidance: 'Please review your appointment details and try again.',
+          });
+        }
       } else {
-        setServerError({
-          code: 'UNEXPECTED_ERROR',
+        setFormError({
+          title: 'Unexpected Error',
           message: err instanceof Error ? err.message : 'An unexpected error occurred while booking.',
+          actionGuidance: 'Please try again.',
         });
       }
     } finally {
@@ -103,158 +236,108 @@ export const BookingForm = ({
 
   const handleBookAnother = () => {
     setSuccessAppointment(null);
-    setServerError(null);
-    setClientError(null);
+    setFormError(null);
   };
 
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
 
-  return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      border: '1px solid #e2e8f0',
-      borderRadius: '0.5rem',
-      padding: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-    }}>
-      <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.25rem', color: '#2d3748', fontWeight: 600 }}>
-        Book an Appointment
-      </h2>
-      <p style={{ marginTop: 0, marginBottom: '1.25rem', fontSize: '0.875rem', color: '#718096' }}>
-        Schedule a new clinic consultation. All appointments are scheduled in <strong>Indian Standard Time (IST, UTC+05:30)</strong>.
-      </p>
-
-      {/* Role notice if caller is Reception */}
-      {isReception && (
-        <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: '#fefcbf',
-          border: '1px solid #f6e05e',
-          borderRadius: '0.375rem',
-          color: '#744210',
-          fontSize: '0.85rem',
-          marginBottom: '1.25rem',
-          lineHeight: 1.4,
-        }}>
-          <strong>Role Notice:</strong> You are currently acting as <strong>Reception Staff</strong> ({currentUser.name}).
-          Under clinic business rules, bookings must be submitted by <strong>Patients</strong>.
-          Switch to a Patient caller in the top bar to book, or submit to verify server-side authorization enforcement.
+  // When reception staff is active, hide the booking form entirely and display a neutral informational message
+  if (isReception) {
+    return (
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h2 className="card-title">Staff Overview</h2>
+          </div>
         </div>
-      )}
+        <div className="alert alert-neutral" role="status">
+          Appointment booking is available through the patient view. As reception staff, you can manage clinic appointments below.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <h2 className="card-title">Book an Appointment</h2>
+          <p className="card-subtitle">
+            Schedule a consultation. Clinic appointments are available between 9:00 AM and 9:00 PM IST.
+          </p>
+        </div>
+      </div>
 
       {/* Success banner */}
       {successAppointment && (
-        <div style={{
-          padding: '1.25rem',
-          backgroundColor: '#f0fff4',
-          border: '1px solid #9ae6b4',
-          borderRadius: '0.375rem',
-          color: '#22543d',
-          marginBottom: '1.5rem',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>✓</span>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Appointment Successfully Booked!</h3>
+        <div className="alert alert-success" role="status">
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'var(--color-success-text)' }}>
+            Appointment Successfully Booked
+          </h3>
+
+          <div className="success-details-box">
+            <div>
+              Appointment Reference: <code>#{successAppointment.id}</code>
+            </div>
+            <div>
+              Doctor: {successAppointment.doctor.name}{' '}
+              <span style={{ color: 'var(--color-text-subtle)' }}>
+                ({successAppointment.doctor.specialization || 'General Practice'})
+              </span>
+            </div>
+            <div>
+              Patient: {successAppointment.patient.name}{' '}
+              <span style={{ color: 'var(--color-text-subtle)' }}>
+                ({successAppointment.patient.email})
+              </span>
+            </div>
+            <div>
+              Scheduled Time: {formatIstDateTime(successAppointment.startTime).full}
+            </div>
+            <div>
+              Duration: {successAppointment.durationMinutes} minutes
+            </div>
+            <div>
+              Status: <span className="badge badge-booked">{successAppointment.status}</span>
+            </div>
           </div>
-          <div style={{
-            fontSize: '0.875rem',
-            lineHeight: 1.6,
-            backgroundColor: '#ffffff',
-            padding: '0.75rem 1rem',
-            borderRadius: '0.25rem',
-            border: '1px solid #c6f6d5',
-            marginTop: '0.5rem',
-          }}>
-            <div><strong>Appointment ID:</strong> #{successAppointment.id}</div>
-            <div><strong>Doctor:</strong> {successAppointment.doctor.name} ({successAppointment.doctor.specialization || 'General Practice'})</div>
-            <div><strong>Patient:</strong> {successAppointment.patient.name} ({successAppointment.patient.email})</div>
-            <div><strong>Scheduled Time:</strong> {formatIstDateTime(successAppointment.startTime).full}</div>
-            <div><strong>Duration:</strong> {successAppointment.durationMinutes} minutes</div>
-            <div><strong>Status:</strong> <span style={{ color: '#276749', fontWeight: 700 }}>{successAppointment.status}</span></div>
-          </div>
+
           <button
             type="button"
             onClick={handleBookAnother}
-            style={{
-              marginTop: '1rem',
-              backgroundColor: '#38a169',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '0.25rem',
-              padding: '0.4rem 0.8rem',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="btn btn-sm btn-primary"
+            style={{ marginTop: '0.5rem' }}
           >
             + Book Another Appointment
           </button>
         </div>
       )}
 
-      {/* Client error banner */}
-      {clientError && (
-        <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: '#fff5f5',
-          border: '1px solid #feb2b2',
-          borderRadius: '0.375rem',
-          color: '#c53030',
-          fontSize: '0.875rem',
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-        }}>
-          <span>⚠</span>
-          <span>{clientError}</span>
-        </div>
-      )}
-
-      {/* Server error banner (including conflict and validation) */}
-      {serverError && (
-        <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: serverError.code === 'SLOT_CONFLICT' ? '#fffaf0' : '#fff5f5',
-          border: `1px solid ${serverError.code === 'SLOT_CONFLICT' ? '#fbd38d' : '#feb2b2'}`,
-          borderRadius: '0.375rem',
-          color: serverError.code === 'SLOT_CONFLICT' ? '#7b341e' : '#c53030',
-          fontSize: '0.875rem',
-          marginBottom: '1rem',
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-            {serverError.code === 'SLOT_CONFLICT' && '⚡ Booking Slot Conflict (HTTP 409)'}
-            {serverError.code === 'PAST_APPOINTMENT' && '⌛ Past Appointment Error (HTTP 422)'}
-            {serverError.code === 'FORBIDDEN' && '⛔ Permission Denied (HTTP 403)'}
-            {serverError.code === 'DOCTOR_INACTIVE' && '⏸ Doctor Inactive (HTTP 409)'}
-            {!['SLOT_CONFLICT', 'PAST_APPOINTMENT', 'FORBIDDEN', 'DOCTOR_INACTIVE'].includes(serverError.code) &&
-              `Server Error (${serverError.code})`}
+      {/* Specific, informative inline error alert */}
+      {formError && (
+        <div className="alert alert-error" role="alert">
+          <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem' }}>{formError.title}</h4>
+          <div style={{ marginBottom: '0.4rem' }}>{formError.message}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--color-danger-text)', opacity: 0.9 }}>
+            Action: {formError.actionGuidance}
           </div>
-          <div>{serverError.message}</div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         {/* Doctor Select */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label htmlFor="doctor-select" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#4a5568', marginBottom: '0.35rem' }}>
-            Doctor: <span style={{ color: '#e53e3e' }}>*</span>
+        <div className="form-group">
+          <label htmlFor="doctor-select" className="form-label">
+            Doctor <span className="required-indicator">*</span>
           </label>
           <select
             id="doctor-select"
+            className="form-control"
             value={selectedDoctorId || ''}
             onChange={(e) => onSelectDoctorId(Number(e.target.value))}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #cbd5e0',
-              fontSize: '0.9rem',
-              backgroundColor: '#ffffff',
-              color: '#2d3748',
-            }}
+            required
           >
-            <option value="">-- Select a doctor --</option>
+            <option value="">-- Choose a doctor --</option>
             {doctors.map((d) => (
               <option key={d.id} value={d.id} disabled={!d.isActive}>
                 {d.name} — {d.specialization || 'General Practice'} {!d.isActive ? '(Inactive)' : ''}
@@ -262,84 +345,83 @@ export const BookingForm = ({
             ))}
           </select>
           {selectedDoctor && (
-            <div style={{ marginTop: '0.3rem', fontSize: '0.8rem', color: '#4a5568' }}>
-              Selected: <strong>{selectedDoctor.name}</strong> ({selectedDoctor.specialization || 'General Practice'})
+            <div className="form-helper">
+              Selected: {selectedDoctor.name} ({selectedDoctor.specialization || 'General Practice'})
             </div>
           )}
         </div>
 
-        {/* Date and Time Pickers (IST) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+        {/* Date & Time Row */}
+        <div className="form-row form-group">
           <div>
-            <label htmlFor="date-input" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#4a5568', marginBottom: '0.35rem' }}>
-              Date (IST): <span style={{ color: '#e53e3e' }}>*</span>
+            <label htmlFor="date-input" className="form-label">
+              Date (IST) <span className="required-indicator">*</span>
             </label>
             <input
               id="date-input"
               type="date"
+              className="form-control"
               value={date}
-              min={getTodayIstString()}
-              onChange={(e) => setDate(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.45rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #cbd5e0',
-                fontSize: '0.9rem',
-                color: '#2d3748',
+              min={getTodayDateString()}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setFormError(null);
               }}
+              required
             />
           </div>
 
           <div>
-            <label htmlFor="time-input" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#4a5568', marginBottom: '0.35rem' }}>
-              Start Time (IST): <span style={{ color: '#e53e3e' }}>*</span>
+            <label htmlFor="time-select" className="form-label">
+              Start Time (IST) <span className="required-indicator">*</span>
             </label>
-            <input
-              id="time-input"
-              type="time"
+            <select
+              id="time-select"
+              className="form-control"
               value={time}
-              step="300"
-              onChange={(e) => setTime(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.45rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #cbd5e0',
-                fontSize: '0.9rem',
-                color: '#2d3748',
+              onChange={(e) => {
+                setTime(e.target.value);
+                setFormError(null);
               }}
-            />
+              required
+            >
+              {CLINIC_TIME_SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Duration Selection */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#4a5568', marginBottom: '0.35rem' }}>
-            Duration: <span style={{ color: '#e53e3e' }}>*</span>
+        <div className="form-helper" style={{ marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
+          Clinic appointments are available between 9:00 AM and 9:00 PM IST. Please select a future date and time.
+        </div>
+
+        {/* Duration Picker */}
+        <div className="form-group">
+          <label className="form-label">
+            Duration <span className="required-indicator">*</span>
           </label>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {DURATIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDuration(d)}
-                style={{
-                  flex: '1 1 60px',
-                  padding: '0.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: duration === d ? 700 : 500,
-                  borderRadius: '0.375rem',
-                  border: duration === d ? '2px solid #3182ce' : '1px solid #cbd5e0',
-                  backgroundColor: duration === d ? '#ebf8ff' : '#ffffff',
-                  color: duration === d ? '#2b6cb0' : '#4a5568',
-                  cursor: 'pointer',
-                  transition: 'all 0.1s ease',
-                }}
-              >
-                {d} min
-              </button>
-            ))}
+          <div className="duration-container" role="radiogroup" aria-label="Appointment duration in minutes">
+            {DURATIONS.map((d) => {
+              const isCurrent = duration === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  role="radio"
+                  aria-checked={isCurrent}
+                  onClick={() => {
+                    setDuration(d);
+                    setFormError(null);
+                  }}
+                  className={`duration-pill ${isCurrent ? 'active' : ''}`}
+                >
+                  {d} min
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -347,23 +429,19 @@ export const BookingForm = ({
         <button
           type="submit"
           disabled={submitting}
-          style={{
-            width: '100%',
-            padding: '0.65rem 1rem',
-            backgroundColor: submitting ? '#a0aec0' : '#3182ce',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '0.375rem',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            cursor: submitting ? 'not-allowed' : 'pointer',
-            transition: 'background-color 0.15s ease',
-          }}
+          className="btn btn-primary btn-block"
+          style={{ padding: '0.75rem 1rem', fontSize: '0.95rem' }}
         >
-          {submitting ? 'Booking Appointment...' : 'Confirm Appointment Booking'}
+          {submitting ? (
+            <>
+              <span className="loading-spinner loading-spinner-sm" aria-hidden="true" />
+              <span>Confirming Booking...</span>
+            </>
+          ) : (
+            'Confirm Appointment Booking'
+          )}
         </button>
       </form>
     </div>
   );
 };
-
