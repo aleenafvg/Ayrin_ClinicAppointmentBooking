@@ -107,8 +107,8 @@ Ayrin_ClinicAppointmentBooking/
 ├── package.json                  # Backend dependencies, scripts, and Vitest configuration
 ├── tsconfig.json                 # Backend TypeScript configuration
 ├── DECISIONS.md                  # Engineering and product decisions document
-├── PREVIOUS_WORK.md              # Previous project and personal contribution (placeholder)
-├── AI_USAGE.md                   # AI tools and usage disclosure (placeholder)
+├── PREVIOUS_WORK.md              # Previous project and personal contribution document
+├── AI_USAGE.md                   # AI tools and usage disclosure document
 └── README.md
 ```
 
@@ -125,7 +125,7 @@ The following project documents are maintained at the repository root:
 - [PREVIOUS_WORK.md](PREVIOUS_WORK.md) — Previous project and personal contribution.
 - [AI_USAGE.md](AI_USAGE.md) — AI tools and usage disclosure.
 
-> *Note: DECISIONS.md documents technical and product trade-offs; PREVIOUS_WORK.md and AI_USAGE.md are designated documentation placeholders.*
+> *Note: DECISIONS.md, PREVIOUS_WORK.md, and AI_USAGE.md document technical trade-offs, prior project contributions, and AI tool usage.*
 
 ---
 
