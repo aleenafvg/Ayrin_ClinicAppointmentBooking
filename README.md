@@ -1,6 +1,6 @@
 # Clinic Appointment Booking System
 
-A full-stack clinic appointment management application where patients can book and manage doctor appointments, while reception staff can manage the clinic schedule, view doctor-specific weekly calendars, and review appointment reports.
+A full-stack clinic appointment management application where patients can book and manage doctor appointments, while reception staff can manage the clinic schedule and review appointment reports.
 
 Built as an engineering assignment using React, TypeScript, Node.js, Express, and PostgreSQL.
 
